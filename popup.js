@@ -26,7 +26,8 @@ function getCurrentTabJsonUrl(callback) {
 
     // A tab is a plain object that provides information about the tab.
     // See https://developer.chrome.com/extensions/tabs#type-Tab
-    var url = tab.url.slice(0, tab.url.length - 1)+".json";
+ 
+    var url = tab.url.split('?')[0]+".json";
 
     // tab.url is only available if the "activeTab" permission is declared.
     // If you want to see the URL of other tabs (e.g. after removing active:true
@@ -93,29 +94,38 @@ function getCommentsByFlair(flair, comments, callback) {
 		}
 	});
 	if (filtered_comments.length == 0) {
-		renderComments('Couldn\'t find any '+flair+' comments. Sorry!');
+		addComment('Couldn\'t find any '+flair+' comments. Sorry!');
 		return;
 	}
 	callback(filtered_comments);
 }
 
 	
-function renderComments(statusText) {
-  document.getElementById('single-comment').innerHTML += "<p>"+statusText+"</p>";
+function addComment(statusText) {
+  document.getElementById('comments').innerHTML += "<p>"+statusText+"</p>";
+}
+
+function clearComments() {
+  document.getElementById('comments').innerHTML = "";
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  getCurrentTabJsonUrl(function(url) {  
-    flair = "chiefs";
-    getComments(url, function(comments) {
-    	getCommentsByFlair(flair, comments, function(filtered_comments) {
-    		for (var i = 0; i < 3; i++) {
-			renderComments(filtered_comments[i]+"\n");
-		}
-      	}),
-    	function(errorMessage) {
-    		renderComments('Cannot display comments. ' + errorMessage);
-    	};
-    });
-    });
+     document.getElementById("sort-button").addEventListener('click', onSortClick);
 });
+
+function onSortClick() {
+ 	clearComments();       
+	getCurrentTabJsonUrl(function(url) {
+	flair = document.getElementById("flair-input").value;
+	getComments(url, function(comments) {
+	getCommentsByFlair(flair, comments, function(filtered_comments) {
+	  	for (var i = 0; i < filtered_comments.length; i++) {
+			addComment(filtered_comments[i]+"\n");
+		}
+	}),
+	function(errorMessage) {
+		addComment('Cannot display comments. ' + errorMessage);
+	};
+        });
+        });
+}
