@@ -86,12 +86,7 @@ function getCommentsByFlair(flair, comments, callback) {
 
 	//iterate through all comments and capture the ones with the sought-after flair
 	comments.forEach(function(comment, i, comments) {
-		if (comment.data.author_flair_text != null) {
-			if (comment.data.author_flair_text.toUpperCase() == flair.toUpperCase()){
-				console.log(comment.data.body);
-				filtered_comments.push(comment.data.body);
-			}
-		}
+		findChildComments(comment, 0, []);
 	});
 	if (filtered_comments.length == 0) {
 		addComment('Couldn\'t find any '+flair+' comments. Sorry!');
@@ -100,9 +95,53 @@ function getCommentsByFlair(flair, comments, callback) {
 	callback(filtered_comments);
 }
 
+function findChildComments(comment, level, ancestors) {
 	
-function addComment(statusText) {
-  document.getElementById('comments').innerHTML += "<p>"+statusText+"</p>";
+	//initialize child values
+	child = {};
+	child.author = comment.data.author;
+	child.text = comment.data.body;
+	child.ancestors = ancestors;
+	child.level = level;
+
+	//if this comment was posted by someone with the flair we want to hear from, it is pushed to the list of flair-appropriate comments (the list to be displayed by the browser action)
+	console.log(comment.data.author_flair_text);
+
+	//can't call toUpperCase on a null value
+	if (comment.data.author_flair_text == null) {
+		comment.data.author_flair_text = "";
+	}
+
+	if (comment.data.author_flair_text.toUpperCase() == flair.toUpperCase()) {
+		filtered_comments.push(child);
+		ancestors = [];
+	}
+
+	//if it doesn't have the right flair, we push it to ancestors. If we find a child of this comment with the flair we want, we can store this comment, along with any other comments between it and the next desired-flair comment, alongside the text, author, etc of that comment. 
+	else {
+		ancestors.push(child);
+		console.log(ancestors);
+	}
+	
+	//for each direct reply to the current comment...
+	if (comment.data.replies != "") {
+		comment.data.replies.data.children.forEach(function (reply, i) {
+			//...the program recursively searches more comments
+			findChildComments(reply, level + 1, ancestors);
+		});
+	}
+
+}
+	
+function addComment(comment) {
+  statusText = comment.text+"\n";
+  tab = "&nbsp;&nbsp;".repeat(comment.level);
+  document.getElementById('comments').innerHTML += "<p>"+tab+statusText+"</p>";
+  /*
+  for (var i = comment.ancestors.length; i >=0; i--) {
+    
+  }
+  */
 }
 
 function clearComments() {
@@ -110,17 +149,22 @@ function clearComments() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-     document.getElementById("sort-button").addEventListener('click', onSortClick);
+     document.getElementById("sort-button").addEventListener('click', sort);
+     document.addEventListener('keypress', function(e) {
+	if (e.keyCode == 13) {
+		sort();
+	}
+     });
 });
 
-function onSortClick() {
+function sort() {
  	clearComments();       
 	getCurrentTabJsonUrl(function(url) {
 	flair = document.getElementById("flair-input").value;
 	getComments(url, function(comments) {
 	getCommentsByFlair(flair, comments, function(filtered_comments) {
 	  	for (var i = 0; i < filtered_comments.length; i++) {
-			addComment(filtered_comments[i]+"\n");
+			addComment(filtered_comments[i]);
 		}
 	}),
 	function(errorMessage) {
