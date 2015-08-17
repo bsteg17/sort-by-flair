@@ -51,9 +51,7 @@ function getCurrentTabJsonUrl(callback) {
 };
 
 
-function getHiddenComments(hiddenCommentIds) {
-
-	hiddenCommentIds.forEach( function (commentId, i) {
+function getHiddenComment(commentId) {
 	
 		var url = "https://www.reddit.com/api/info.json?id=t1_"+commentId;
 
@@ -67,15 +65,8 @@ function getHiddenComments(hiddenCommentIds) {
 	  	  comment = this.response.data.children[0];
 	  	  adjustTeamCount(comment);
 		}
-	});
 }
-/**
- * @param {string} searchTerm - Search term for Google Image search.
- * @param {function(string,number,number)} callback - Called when an image has
- *   been found. The callback gets the URL, width and height of the image.
- * @param {function(string)} errorCallback - Called when the image is not found.
- *   The callback gets a string that describes the failure reason.
- */
+
 
 function getComments(url, callback, errorCallback) {
   
@@ -113,8 +104,7 @@ function storeComments(comments, callback) {
 	comments.forEach(function(comment, i, comments) {
 		traverseComments(comment, 0, []);
 	});
-	console.log(stats);
-	getHiddenComments(hiddenCommentIds);
+
 	callback(stats);
 }
 
@@ -134,21 +124,18 @@ function adjustTeamCount(comment) {
 		stats[team]["teamKarma"] = comment.data.score;
 		stats[team]["commentCount"] = 1;
 	}
+	console.log(JSON.parse(JSON.stringify(team)));;
+	console.log(JSON.parse(JSON.stringify(stats)));;
 }
 
 function traverseComments(comment, level, ancestors) {
 	
 	if (comment.kind == "more") {
 			comment.data.children.forEach( function (id, i) {
-				hiddenCommentIds.push(id);
+				getHiddenComment(id);
 			});
 			return;
 	}
-
-	//initialize child values
-	child = {};
-	child.author = comment.data.author;
-	child.text = comment.data.body;
 
 	adjustTeamCount(comment);
 	
@@ -171,7 +158,7 @@ $(document).ready(function() {
 	getCurrentTabJsonUrl(function(url) {
 	getComments(url, function(comments) {
 	storeComments(comments, function(stats) {
-	  	console.log(stats);
+	  	console.log("drawGraphics(stats);");
 	}),
 	function(errorMessage) {
 		addComment('Cannot display comments. ' + errorMessage);
