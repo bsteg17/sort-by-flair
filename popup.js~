@@ -50,6 +50,25 @@ function getCurrentTabJsonUrl(callback) {
 
 };
 
+
+function getHiddenComments(hiddenCommentIds) {
+
+	hiddenCommentIds.forEach( function (commentId, i) {
+	
+		var url = "https://www.reddit.com/api/info.json?id=t1_"+commentId;
+
+		var oReq = new XMLHttpRequest();
+		oReq.addEventListener('load', reqListener);
+		oReq.open("get", url);
+		oReq.responseType = 'json';
+		oReq.send();
+
+		function reqListener () {
+	  	  comment = this.response.data.children[0];
+	  	  adjustTeamCount(comment);
+		}
+	});
+}
 /**
  * @param {string} searchTerm - Search term for Google Image search.
  * @param {function(string,number,number)} callback - Called when an image has
@@ -65,7 +84,7 @@ function getComments(url, callback, errorCallback) {
   x.open('GET', url);
   x.responseType = 'json';
   x.onload = function() {
-    // Parse and process the response from Google Image Search.
+    
     var response = x.response;
     if (!response) {
       errorCallback('No response from Reddit!');
@@ -81,112 +100,82 @@ function getComments(url, callback, errorCallback) {
   x.send();
 }
 
-function getCommentsByFlair(flair, comments, callback) {
-	filtered_comments = [];
+function storeComments(comments, callback) {
+	stats = {};
+	hiddenCommentIds = [];
+
+	if (comments == null) {
+		addComment('no comments');
+		return;
+	}
 
 	//iterate through all comments and capture the ones with the sought-after flair
 	comments.forEach(function(comment, i, comments) {
-		findChildComments(comment, 0, []);
+		traverseComments(comment, 0, []);
 	});
-	if (filtered_comments.length == 0) {
-		addComment('Couldn\'t find any '+flair+' comments. Sorry!');
-		return;
-	}
-	callback(filtered_comments);
+	console.log(stats);
+	getHiddenComments(hiddenCommentIds);
+	callback(stats);
 }
 
-function findChildComments(comment, level, ancestors) {
+function adjustTeamCount(comment) {
+	//can't call toUpperCase on a null value
+	if (comment.data.author_flair_text == null) {
+		comment.data.author_flair_text = "NONE";
+	}
+
+	team = comment.data.author_flair_text.toUpperCase();
+	if (stats.hasOwnProperty(team)) {
+		stats[team]["teamKarma"] += comment.data.score;
+		stats[team]["commentCount"] += 1;
+	} 
+	else { 
+		stats[team] = {};
+		stats[team]["teamKarma"] = comment.data.score;
+		stats[team]["commentCount"] = 1;
+	}
+}
+
+function traverseComments(comment, level, ancestors) {
 	
+	if (comment.kind == "more") {
+			comment.data.children.forEach( function (id, i) {
+				hiddenCommentIds.push(id);
+			});
+			return;
+	}
+
 	//initialize child values
 	child = {};
 	child.author = comment.data.author;
 	child.text = comment.data.body;
-	child.ancestors = ancestors;
-	child.level = level;
 
-	//if this comment was posted by someone with the flair we want to hear from, it is pushed to the list of flair-appropriate comments (the list to be displayed by the browser action)
-
-	//can't call toUpperCase on a null value
-	if (comment.data.author_flair_text == null) {
-		comment.data.author_flair_text = "";
-	}
-
-	if (comment.data.author_flair_text.toUpperCase() == flair.toUpperCase()) {
-		filtered_comments.push(child);
-		ancestors = [];
-	}
-
-	//if it doesn't have the right flair, we push it to ancestors. If we find a child of this comment with the flair we want, we can store this comment, along with any other comments between it and the next desired-flair comment, alongside the text, author, etc of that comment. 
-	else {
-		ancestors.push(child);
-	}
+	adjustTeamCount(comment);
 	
 	//for each direct reply to the current comment...
 	if (comment.data.replies != "") {
 		comment.data.replies.data.children.forEach(function (reply, i) {
 			//...the program recursively searches more comments
-			findChildComments(reply, level + 1, ancestors);
+			traverseComments(reply, level + 1, ancestors);
 		});
 	}
 
 }
-	
-function addComment(comment) {
-  statusText = $("<p>").text(comment.text+"\n");
-  tab = "&nbsp;&nbsp;".repeat(comment.level);
-  commentBlock = $("<p>");
 
-  if (comment.ancestors.length > 0) {
-	 showHideButton = $("<a>").attr("href","#").text("See parent comments...");
-	 commentBlock.append(showHideButton);
-         ancestorList = $("<ul>");
-         for (var i = comment.ancestors.length - 1; i >= 0; i--) {
-                li = $("<li>").text( "&nbsp;&nbsp;".repeat(comment.ancestors[i].level)+comment.ancestors[i].text );
-	 ancestorList.append(li);
-	 }
-   ancestorList.hide();
-   commentBlock.append(ancestorList);
-   }
-   commentBlock.append(statusText);
-
-  $("#comments").append(commentBlock);
-}
-
-function clearComments() {
+function clear() {
   document.getElementById('comments').innerHTML = "";
 }
 
 $(document).ready(function() {
-     $("#sort-button").on('click', sort);
-     document.addEventListener('keypress', function(e) {
-	if (e.keyCode == 13) {
-		sort();
-	}
-     });
-     $(document).on("click", "#comments a", function() {
-	   console.log(ancestorList);
-           if (this.innerText == "See parent comments...") {
-                  this.innerText = "Hide parent comments...";
-	   } else {
-                  this.innerText = "See parent comments...";
-	   }
-	   this.siblings("li").toggle();
-     });
-});
-
-function sort() {
- 	clearComments();       
+    clear();       
 	getCurrentTabJsonUrl(function(url) {
-	flair = document.getElementById("flair-input").value;
 	getComments(url, function(comments) {
-	getCommentsByFlair(flair, comments, function(filtered_comments) {
-	  	for (var i = 0; i < filtered_comments.length; i++) {
-			addComment(filtered_comments[i]);
-		}
+	storeComments(comments, function(stats) {
+	  	console.log(stats);
 	}),
 	function(errorMessage) {
 		addComment('Cannot display comments. ' + errorMessage);
 	};
         });
         });
-}
+});

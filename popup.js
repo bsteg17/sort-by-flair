@@ -51,18 +51,23 @@ function getCurrentTabJsonUrl(callback) {
 };
 
 
-function getHiddenComment(commentId) {
+function getHiddenComments(hiddenCommentIds) {
 
-	var url = "https://http://www.reddit.com/api/info.json?id=t1_"+commendId;
+	hiddenCommentIds.forEach( function (commentId, i) {
+	
+		var url = "https://www.reddit.com/api/info.json?id=t1_"+commentId;
 
-	var oReq = new XMLHttpRequest();
-	oReq.addEventListener('load', reqListener);
-	oReq.open("get", url, true);
-	oReq.send();
+		var oReq = new XMLHttpRequest();
+		oReq.addEventListener('load', reqListener);
+		oReq.open("get", url);
+		oReq.responseType = 'json';
+		oReq.send();
 
-	function reqListener () {
-	  return this.responseText;
-	}
+		function reqListener () {
+	  	  comment = this.response.data.children[0];
+	  	  adjustTeamCount(comment);
+		}
+	});
 }
 /**
  * @param {string} searchTerm - Search term for Google Image search.
@@ -79,7 +84,7 @@ function getComments(url, callback, errorCallback) {
   x.open('GET', url);
   x.responseType = 'json';
   x.onload = function() {
-    // Parse and process the response from Google Image Search.
+    
     var response = x.response;
     if (!response) {
       errorCallback('No response from Reddit!');
@@ -97,6 +102,7 @@ function getComments(url, callback, errorCallback) {
 
 function storeComments(comments, callback) {
 	stats = {};
+	hiddenCommentIds = [];
 
 	if (comments == null) {
 		addComment('no comments');
@@ -107,19 +113,12 @@ function storeComments(comments, callback) {
 	comments.forEach(function(comment, i, comments) {
 		traverseComments(comment, 0, []);
 	});
-	
+	console.log(stats);
+	getHiddenComments(hiddenCommentIds);
 	callback(stats);
 }
 
-function traverseComments(comment, level, ancestors) {
-	
-	//initialize child values
-	child = {};
-	child.author = comment.data.author;
-	child.text = comment.data.body;
-
-	//if this comment was posted by someone with the flair we want to hear from, it is pushed to the list of flair-appropriate comments (the list to be displayed by the browser action)
-
+function adjustTeamCount(comment) {
 	//can't call toUpperCase on a null value
 	if (comment.data.author_flair_text == null) {
 		comment.data.author_flair_text = "NONE";
@@ -135,8 +134,23 @@ function traverseComments(comment, level, ancestors) {
 		stats[team]["teamKarma"] = comment.data.score;
 		stats[team]["commentCount"] = 1;
 	}
+}
 
-	console.log(team);
+function traverseComments(comment, level, ancestors) {
+	
+	if (comment.kind == "more") {
+			comment.data.children.forEach( function (id, i) {
+				hiddenCommentIds.push(id);
+			});
+			return;
+	}
+
+	//initialize child values
+	child = {};
+	child.author = comment.data.author;
+	child.text = comment.data.body;
+
+	adjustTeamCount(comment);
 	
 	//for each direct reply to the current comment...
 	if (comment.data.replies != "") {
