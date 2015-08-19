@@ -51,23 +51,31 @@ function getCurrentTabJsonUrl(callback) {
 };
 
 
-function getHiddenComments(hiddenCommentIds) {
+function getHiddenComments(stats, hiddenCommentIds, callback) {
+
+	numLoaded = 0;
 
 	hiddenCommentIds.forEach( function (commentId, i) {
 	
 		var url = "https://www.reddit.com/api/info.json?id=t1_"+commentId;
 
-		var oReq = new XMLHttpRequest();
-		oReq.addEventListener('load', reqListener);
-		oReq.open("get", url);
-		oReq.responseType = 'json';
-		oReq.send();
-
-		function reqListener () {
-	  	  comment = this.response.data.children[0];
-	  	  adjustTeamCount(comment);
-		}
-	});
+		var x = new XMLHttpRequest();
+  
+  		x.open('GET', url);
+  		x.responseType = 'json';
+  		x.onload = function() {
+    
+    		var response = x.response;
+    		comment = response.data.children[0];
+    		adjustTeamCount(comment);
+    		
+    		if (numLoaded == hiddenCommentIds.length - 1) {
+				callback(stats);
+			}
+			numLoaded += 1;
+  		};
+  		x.send();
+	});	
 }
 /**
  * @param {string} searchTerm - Search term for Google Image search.
@@ -114,8 +122,8 @@ function storeComments(comments, callback) {
 		traverseComments(comment, 0, []);
 	});
 	console.log(stats);
-	getHiddenComments(hiddenCommentIds);
-	callback(stats);
+
+	callback(stats, hiddenCommentIds);
 }
 
 function adjustTeamCount(comment) {
@@ -166,16 +174,32 @@ function clear() {
   document.getElementById('comments').innerHTML = "";
 }
 
+var hiddenCommentsStored = false;
 $(document).ready(function() {
     clear();       
 	getCurrentTabJsonUrl(function(url) {
 	getComments(url, function(comments) {
-	storeComments(comments, function(stats) {
-	  	console.log(stats);
-	}),
+	storeComments(comments, function(stats, hiddenCommentIds) {
+	getHiddenComments(stats, hiddenCommentIds, function(stats) {
+		console.log("drawGraph");
+	});
+	})
+});
+/*
+		d = new Date();
+		startTime = d.getTime();
+		timer = startTime;
+		console.dir(hiddenCommentsStored);
+	  	while (!hiddenCommentsStored) {
+	  		if (timer > startTime + 10000) {
+	  			addComment("Could not gather all comments.");
+	  		}
+	  		timer = d.getTime();
+	  	}
+*/
+	},
 	function(errorMessage) {
 		addComment('Cannot display comments. ' + errorMessage);
-	};
-        });
-        });
-});
+	})
+    });
+
