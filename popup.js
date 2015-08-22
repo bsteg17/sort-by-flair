@@ -75,7 +75,7 @@ function getHiddenComments(stats, hiddenCommentIds, callback) {
 			numLoaded += 1;
   		};
   		x.send();
-	});	
+	});
 }
 /**
  * @param {string} searchTerm - Search term for Google Image search.
@@ -122,7 +122,6 @@ function storeComments(comments, callback) {
 		traverseComments(comment, 0, []);
 	});
 	console.log(stats);
-
 	callback(stats, hiddenCommentIds);
 }
 
@@ -167,39 +166,67 @@ function traverseComments(comment, level, ancestors) {
 			traverseComments(reply, level + 1, ancestors);
 		});
 	}
-
 }
 
-function clear() {
-  document.getElementById('comments').innerHTML = "";
-}
-
-var hiddenCommentsStored = false;
-$(document).ready(function() {
-    clear();       
+$(document).ready(function() {       
 	getCurrentTabJsonUrl(function(url) {
 	getComments(url, function(comments) {
 	storeComments(comments, function(stats, hiddenCommentIds) {
 	getHiddenComments(stats, hiddenCommentIds, function(stats) {
-		console.log("drawGraph");
+		console.log("here");
+		drawGraph(formatData(stats));
 	});
 	})
 });
-/*
-		d = new Date();
-		startTime = d.getTime();
-		timer = startTime;
-		console.dir(hiddenCommentsStored);
-	  	while (!hiddenCommentsStored) {
-	  		if (timer > startTime + 10000) {
-	  			addComment("Could not gather all comments.");
-	  		}
-	  		timer = d.getTime();
-	  	}
-*/
+
 	},
 	function(errorMessage) {
 		addComment('Cannot display comments. ' + errorMessage);
 	})
     });
 
+function drawGraph(stats) {
+	console.log("drawGraph");
+	var options = {
+    	//Boolean - Whether we should show a stroke on each segment
+    	segmentShowStroke : true,
+	
+    	//String - The colour of each segment stroke
+    	segmentStrokeColor : "#fff",
+	
+    	//Number - The width of each segment stroke
+    	segmentStrokeWidth : 2,
+	
+    	//Number - The percentage of the chart that we cut out of the middle
+    	percentageInnerCutout : 50, // This is 0 for Pie charts
+	
+    	//Number - Amount of animation steps
+    	animationSteps : 100,
+	
+    	//String - Animation easing effect
+    	animationEasing : "easeOutBounce",
+	
+    	//Boolean - Whether we animate the rotation of the Doughnut
+    	animateRotate : true,
+	
+    	//Boolean - Whether we animate scaling the Doughnut from the centre
+    	animateScale : false,
+	
+    	//String - A legend template
+    	legendTemplate : "<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<segments.length; i++){%><li><span style=\"background-color:<%=segments[i].fillColor%>\"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>"
+
+	}
+	var ctx = document.getElementById("graph").getContext("2d");
+	var myDoughnutChart = new Chart(ctx).Doughnut(stats,options);
+}
+
+function formatData(stats) {
+	console.log("formatData");
+	var formatted = [];
+	for (var team in stats) {
+		formatted.push({value: 0});
+		formatted[formatted.length - 1]["value"] = team.commentCount;
+		formatted[formatted.length - 1]["color"] = "Red";
+	}
+	return formatted;
+}
