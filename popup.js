@@ -51,6 +51,7 @@ function getCurrentTabJsonUrl(callback) {
 };
 
 
+<<<<<<< HEAD
 function getHiddenComments(stats, hiddenCommentIds, callback) {
 
 	numLoaded = 0;
@@ -76,14 +77,24 @@ function getHiddenComments(stats, hiddenCommentIds, callback) {
   		};
   		x.send();
 	});
+=======
+function getHiddenComment(commentId) {
+	
+		var url = "https://www.reddit.com/api/info.json?id=t1_"+commentId;
+
+		var oReq = new XMLHttpRequest();
+		oReq.addEventListener('load', reqListener);
+		oReq.open("get", url);
+		oReq.responseType = 'json';
+		oReq.send();
+
+		function reqListener () {
+	  	  comment = this.response.data.children[0];
+	  	  adjustTeamCount(comment);
+		}
+>>>>>>> 424617e36696ff1f237a1f23d830596032115fb2
 }
-/**
- * @param {string} searchTerm - Search term for Google Image search.
- * @param {function(string,number,number)} callback - Called when an image has
- *   been found. The callback gets the URL, width and height of the image.
- * @param {function(string)} errorCallback - Called when the image is not found.
- *   The callback gets a string that describes the failure reason.
- */
+
 
 function getComments(url, callback, errorCallback) {
   
@@ -121,8 +132,13 @@ function storeComments(comments, callback) {
 	comments.forEach(function(comment, i, comments) {
 		traverseComments(comment, 0, []);
 	});
+<<<<<<< HEAD
 	console.log(stats);
 	callback(stats, hiddenCommentIds);
+=======
+
+	callback(stats);
+>>>>>>> 424617e36696ff1f237a1f23d830596032115fb2
 }
 
 function adjustTeamCount(comment) {
@@ -141,21 +157,18 @@ function adjustTeamCount(comment) {
 		stats[team]["teamKarma"] = comment.data.score;
 		stats[team]["commentCount"] = 1;
 	}
+	console.log(JSON.parse(JSON.stringify(team)));;
+	console.log(JSON.parse(JSON.stringify(stats)));;
 }
 
 function traverseComments(comment, level, ancestors) {
 	
 	if (comment.kind == "more") {
 			comment.data.children.forEach( function (id, i) {
-				hiddenCommentIds.push(id);
+				getHiddenComment(id);
 			});
 			return;
 	}
-
-	//initialize child values
-	child = {};
-	child.author = comment.data.author;
-	child.text = comment.data.body;
 
 	adjustTeamCount(comment);
 	
