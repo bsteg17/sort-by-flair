@@ -8,6 +8,7 @@
  * @param {function(string)} callback - called when the URL of the current tab
  *   is found.
  */
+
 function getCurrentTabJsonUrl(callback) {
   // Query filter to be passed to chrome.tabs.query - see
   // https://developer.chrome.com/extensions/tabs#method-query
@@ -48,34 +49,38 @@ function getCurrentTabJsonUrl(callback) {
   // alert(url); // Shows "undefined", because chrome.tabs.query is async.
 
 
-};
+}
 
 
-function getHiddenComments(hiddenCommentIds) {
+
+function getHiddenComments(stats, hiddenCommentIds, callback) {
+
+	numLoaded = 0;
 
 	hiddenCommentIds.forEach( function (commentId, i) {
 	
 		var url = "https://www.reddit.com/api/info.json?id=t1_"+commentId;
 
-		var oReq = new XMLHttpRequest();
-		oReq.addEventListener('load', reqListener);
-		oReq.open("get", url);
-		oReq.responseType = 'json';
-		oReq.send();
-
-		function reqListener () {
-	  	  comment = this.response.data.children[0];
-	  	  adjustTeamCount(comment);
-		}
+		var x = new XMLHttpRequest();
+  
+  		x.open('GET', url);
+  		x.responseType = 'json';
+  		x.onload = function() {
+    
+    		var response = x.response;
+    		comment = response.data.children[0];
+    		adjustTeamCount(comment);
+    		
+    		if (numLoaded == hiddenCommentIds.length - 1) {
+				callback(stats);
+			}
+			numLoaded += 1;
+  		};
+  		x.send();
 	});
 }
-/**
- * @param {string} searchTerm - Search term for Google Image search.
- * @param {function(string,number,number)} callback - Called when an image has
- *   been found. The callback gets the URL, width and height of the image.
- * @param {function(string)} errorCallback - Called when the image is not found.
- *   The callback gets a string that describes the failure reason.
- */
+
+
 
 function getComments(url, callback, errorCallback) {
   
@@ -114,7 +119,8 @@ function storeComments(comments, callback) {
 		traverseComments(comment, 0, []);
 	});
 	console.log(stats);
-	getHiddenComments(hiddenCommentIds);
+	callback(stats, hiddenCommentIds);
+
 	callback(stats);
 }
 
@@ -134,6 +140,8 @@ function adjustTeamCount(comment) {
 		stats[team]["teamKarma"] = comment.data.score;
 		stats[team]["commentCount"] = 1;
 	}
+	console.log(JSON.parse(JSON.stringify(team)));;
+	console.log(JSON.parse(JSON.stringify(stats)));;
 }
 
 function traverseComments(comment, level, ancestors) {
@@ -145,11 +153,6 @@ function traverseComments(comment, level, ancestors) {
 			return;
 	}
 
-	//initialize child values
-	child = {};
-	child.author = comment.data.author;
-	child.text = comment.data.body;
-
 	adjustTeamCount(comment);
 	
 	//for each direct reply to the current comment...
@@ -159,23 +162,78 @@ function traverseComments(comment, level, ancestors) {
 			traverseComments(reply, level + 1, ancestors);
 		});
 	}
-
 }
 
-function clear() {
-  document.getElementById('comments').innerHTML = "";
-}
-
-$(document).ready(function() {
-    clear();       
+$(document).ready(function() { 
 	getCurrentTabJsonUrl(function(url) {
 	getComments(url, function(comments) {
-	storeComments(comments, function(stats) {
-	  	console.log(stats);
-	}),
+	storeComments(comments, function(stats, hiddenCommentIds) {
+	getHiddenComments(stats, hiddenCommentIds, function(stats) {
+               drawGraph(formatData(stats));
+	});
+	});
+
+        });
+
+	},
 	function(errorMessage) {
 		addComment('Cannot display comments. ' + errorMessage);
-	};
-        });
-        });
+	})
 });
+
+function drawGraph(stats) {
+	var options = {
+    	//Boolean - Whether we should show a stroke on each segment
+    	segmentShowStroke : true,
+	
+    	//String - The colour of each segment stroke
+    	segmentStrokeColor : "#fff",
+	
+    	//Number - The width of each segment stroke
+    	segmentStrokeWidth : 2,
+	
+    	//Number - The percentage of the chart that we cut out of the middle
+    	percentageInnerCutout : 50, // This is 0 for Pie charts
+	
+    	//Number - Amount of animation steps
+    	animationSteps : 100,
+	
+    	//String - Animation easing effect
+    	animationEasing : "easeOutBounce",
+	
+    	//Boolean - Whether we animate the rotation of the Doughnut
+    	animateRotate : true,
+	
+    	//Boolean - Whether we animate scaling the Doughnut from the centre
+    	animateScale : false,
+	
+    	//String - A legend template
+    	legendTemplate : "<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<segments.length; i++){%><li><span style=\"background-color:<%=segments[i].fillColor%>\"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>"
+
+	}
+	var ctx = document.getElementById("countGraph").getContext("2d");
+	var myDoughnutChart = new Chart(ctx).Doughnut(stats,options);
+}
+
+function formatData(stats) {
+	var formatted = [];
+	for (var team in stats) {
+	    if (stats.hasOwnProperty(team)){
+	        console.log(stats[team]);
+		     formatted.push({});
+
+			  if (stats[team] != "NFL") {
+			     formatted[formatted.length - 1]["label"] = capitalizeFirstChar(team);
+			  } else {
+              formatted[formatted.length - 1]["label"] = capitalizeFirstChar(team);
+		     }
+			  formatted[formatted.length - 1]["value"] = stats[team]["commentCount"];
+			  formatted[formatted.length - 1]["color"] = TEAMCOLORS[team];
+	    }
+	}
+	return formatted;
+}
+
+function capitalizeFirstChar(str) {
+   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}

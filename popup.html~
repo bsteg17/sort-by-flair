@@ -1,9 +1,4 @@
 <!doctype html>
-<!--
- This page is shown when the extension button is clicked, because the
- "browser_action" field in manifest.json contains the "default_popup" key with
- value "popup.html".
- -->
 <html>
   <head>
     <title>Sorted /r/NFL comments by fandom</title>
@@ -22,19 +17,16 @@
         max-width: 400px;
       }
     </style>
-
-    <!--
-      - JavaScript and HTML must be in separate files: see our Content Security
-      - Policy documentation[1] for details and explanation.
-      -
-      - [1]: https://developer.chrome.com/extensions/contentSecurityPolicy
-     -->
   </head>
   <body>
-    <input id="flair-input" style="width:400px"></input><button id="sort-button" style="width:90px">Sort</button>
-    <div id="comments"></div>
+    
+    <canvas id="countGraph" width="400" height="400"></canvas>
+    <script src="jquery.js"></script>
+    <script src="Chart.min.js"></script>
 
+    <script src="colors.js"></script>
 
+    <script src="popup.js"></script>
   </body>
 </html>
 

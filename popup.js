@@ -8,6 +8,7 @@
  * @param {function(string)} callback - called when the URL of the current tab
  *   is found.
  */
+
 function getCurrentTabJsonUrl(callback) {
   // Query filter to be passed to chrome.tabs.query - see
   // https://developer.chrome.com/extensions/tabs#method-query
@@ -48,10 +49,10 @@ function getCurrentTabJsonUrl(callback) {
   // alert(url); // Shows "undefined", because chrome.tabs.query is async.
 
 
-};
+}
 
 
-<<<<<<< HEAD
+
 function getHiddenComments(stats, hiddenCommentIds, callback) {
 
 	numLoaded = 0;
@@ -77,23 +78,8 @@ function getHiddenComments(stats, hiddenCommentIds, callback) {
   		};
   		x.send();
 	});
-=======
-function getHiddenComment(commentId) {
-	
-		var url = "https://www.reddit.com/api/info.json?id=t1_"+commentId;
-
-		var oReq = new XMLHttpRequest();
-		oReq.addEventListener('load', reqListener);
-		oReq.open("get", url);
-		oReq.responseType = 'json';
-		oReq.send();
-
-		function reqListener () {
-	  	  comment = this.response.data.children[0];
-	  	  adjustTeamCount(comment);
-		}
->>>>>>> 424617e36696ff1f237a1f23d830596032115fb2
 }
+
 
 
 function getComments(url, callback, errorCallback) {
@@ -132,13 +118,10 @@ function storeComments(comments, callback) {
 	comments.forEach(function(comment, i, comments) {
 		traverseComments(comment, 0, []);
 	});
-<<<<<<< HEAD
 	console.log(stats);
 	callback(stats, hiddenCommentIds);
-=======
 
 	callback(stats);
->>>>>>> 424617e36696ff1f237a1f23d830596032115fb2
 }
 
 function adjustTeamCount(comment) {
@@ -165,7 +148,7 @@ function traverseComments(comment, level, ancestors) {
 	
 	if (comment.kind == "more") {
 			comment.data.children.forEach( function (id, i) {
-				getHiddenComment(id);
+				hiddenCommentIds.push(id);
 			});
 			return;
 	}
@@ -181,25 +164,24 @@ function traverseComments(comment, level, ancestors) {
 	}
 }
 
-$(document).ready(function() {       
+$(document).ready(function() { 
 	getCurrentTabJsonUrl(function(url) {
 	getComments(url, function(comments) {
 	storeComments(comments, function(stats, hiddenCommentIds) {
 	getHiddenComments(stats, hiddenCommentIds, function(stats) {
-		console.log("here");
-		drawGraph(formatData(stats));
+               drawGraph(formatData(stats));
 	});
-	})
-});
+	});
+
+        });
 
 	},
 	function(errorMessage) {
 		addComment('Cannot display comments. ' + errorMessage);
 	})
-    });
+});
 
 function drawGraph(stats) {
-	console.log("drawGraph");
 	var options = {
     	//Boolean - Whether we should show a stroke on each segment
     	segmentShowStroke : true,
@@ -229,17 +211,29 @@ function drawGraph(stats) {
     	legendTemplate : "<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<segments.length; i++){%><li><span style=\"background-color:<%=segments[i].fillColor%>\"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>"
 
 	}
-	var ctx = document.getElementById("graph").getContext("2d");
+	var ctx = document.getElementById("countGraph").getContext("2d");
 	var myDoughnutChart = new Chart(ctx).Doughnut(stats,options);
 }
 
 function formatData(stats) {
-	console.log("formatData");
 	var formatted = [];
 	for (var team in stats) {
-		formatted.push({value: 0});
-		formatted[formatted.length - 1]["value"] = team.commentCount;
-		formatted[formatted.length - 1]["color"] = "Red";
+	    if (stats.hasOwnProperty(team)){
+	        console.log(stats[team]);
+		     formatted.push({});
+
+			  if (stats[team] != "NFL") {
+			     formatted[formatted.length - 1]["label"] = capitalizeFirstChar(team);
+			  } else {
+              formatted[formatted.length - 1]["label"] = team;
+		     }
+			  formatted[formatted.length - 1]["value"] = stats[team]["commentCount"];
+			  formatted[formatted.length - 1]["color"] = TEAMCOLORS[team];
+	    }
 	}
 	return formatted;
+}
+
+function capitalizeFirstChar(str) {
+   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
