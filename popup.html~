@@ -19,8 +19,16 @@
     </style>
   </head>
   <body>
-    
-    <canvas id="countGraph" width="400" height="400"></canvas>
+    <table>
+	<tbody>
+	<tr>
+    <td><tr><canvas id="countGraph" width="200" height="200"></canvas></tr><tr><p align="center">Total Number of Comments By Team</p></tr></td>
+    <td><canvas id="totalScoreGraph" width="200" height="200"></canvas><p align="center">Total Karma By Team</p></td>
+   </tr>
+   <tr>
+    <td><canvas id="averageScoreGraph" width="200" height="200"></canvas><p align="center">Average Karma By Team</p></td>
+    <td></td>
+   </tr>
     <script src="jquery.js"></script>
     <script src="Chart.min.js"></script>
 

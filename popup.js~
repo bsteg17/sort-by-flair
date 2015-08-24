@@ -120,8 +120,6 @@ function storeComments(comments, callback) {
 	});
 	console.log(stats);
 	callback(stats, hiddenCommentIds);
-
-	callback(stats);
 }
 
 function adjustTeamCount(comment) {
@@ -169,7 +167,14 @@ $(document).ready(function() {
 	getComments(url, function(comments) {
 	storeComments(comments, function(stats, hiddenCommentIds) {
 	getHiddenComments(stats, hiddenCommentIds, function(stats) {
-               drawGraph(formatData(stats));
+
+      //add average karma/comment to dataset
+      for (team in stats) {
+         stats[team]["average"] = stats[team]["teamKarma"]/stats[team]["commentCount"];
+      }
+      drawGraph(formatData(stats, "commentCount"), "countGraph");
+      drawGraph(formatData(stats, "teamKarma"), "totalScoreGraph");
+      drawGraph(formatData(stats, "average"), "averageScoreGraph");
 	});
 	});
 
@@ -181,7 +186,7 @@ $(document).ready(function() {
 	})
 });
 
-function drawGraph(stats) {
+function drawGraph(stats, graphID) {
 	var options = {
     	//Boolean - Whether we should show a stroke on each segment
     	segmentShowStroke : true,
@@ -211,11 +216,11 @@ function drawGraph(stats) {
     	legendTemplate : "<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<segments.length; i++){%><li><span style=\"background-color:<%=segments[i].fillColor%>\"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>"
 
 	}
-	var ctx = document.getElementById("countGraph").getContext("2d");
+	var ctx = document.getElementById(graphID).getContext("2d");
 	var myDoughnutChart = new Chart(ctx).Doughnut(stats,options);
 }
 
-function formatData(stats) {
+function formatData(stats, category) {
 	var formatted = [];
 	for (var team in stats) {
 	    if (stats.hasOwnProperty(team)){
@@ -225,9 +230,9 @@ function formatData(stats) {
 			  if (stats[team] != "NFL") {
 			     formatted[formatted.length - 1]["label"] = capitalizeFirstChar(team);
 			  } else {
-              formatted[formatted.length - 1]["label"] = capitalizeFirstChar(team);
+              formatted[formatted.length - 1]["label"] = team;
 		     }
-			  formatted[formatted.length - 1]["value"] = stats[team]["commentCount"];
+			  formatted[formatted.length - 1]["value"] = stats[team][category];
 			  formatted[formatted.length - 1]["color"] = TEAMCOLORS[team];
 	    }
 	}
