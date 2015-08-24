@@ -1,0 +1,3 @@
+--when team is clicked, show top comments for that team flair
+--tabs for showing different graph types
+   --one of these types could be a simple list
