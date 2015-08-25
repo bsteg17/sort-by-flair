@@ -1,3 +1,7 @@
 --when team is clicked, show top comments for that team flair
 --tabs for showing different graph types
    --one of these types could be a simple list
+--option to exclude top 2 posts / team in calc of average
+   --also exclude teams with less than (certain num of comments)
+--head-to-head (team-to-team) stat comparisons
+--allow user to opt-out of including hidden comments (to speed up load times)
