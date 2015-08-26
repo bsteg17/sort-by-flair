@@ -3,5 +3,7 @@
    --one of these types could be a simple list
 --option to exclude top 2 posts / team in calc of average
    --also exclude teams with less than (certain num of comments)
+   --should 1 point be scraped from karma so that if people get competive they don't up the karma count just by commenting?
 --head-to-head (team-to-team) stat comparisons
 --allow user to opt-out of including hidden comments (to speed up load times)
+--when a pie graph changes to a bar graph, the pie graph in the way of the expanding bar graph slides down to the next row

@@ -172,9 +172,9 @@ $(document).ready(function() {
       for (team in stats) {
       	stats[team]["average"] = (stats[team]["teamKarma"]/stats[team]["commentCount"]).toFixed(1); //display to 1 decimal place
       }
-      drawGraph(stats, "countGraph", "pie");
-      drawGraph(stats, "totalScoreGraph", "pie");
-      drawGraph(stats, "averageScoreGraph", "pie");
+      drawGraph(stats, "countGraph", "pie", "commentCount");
+      drawGraph(stats, "totalScoreGraph", "pie", "teamKarma");
+      drawGraph(stats, "averageScoreGraph", "pie", "average");
 	});
 	});
 
@@ -187,27 +187,33 @@ $(document).ready(function() {
 });
 
 $("#count-graph-select").change(function() {
-   chartType = $(this).val();
-   drawGraph(formatData(stats, "commentCount"), "countGraph", chartType);
+   graphShape = $(this).val();
+   drawGraph(stats, "countGraph", graphShape, "commentCount");
 });
 
-function drawGraph(stats, graphID, graphType) {
-	data = formatData(stats, "average", "pie")
-	var options = OPTIONS[graphType];
+var charts = {};
+
+function drawGraph(stats, graphID, graphShape, graphCategory) {
+	data = formatData(stats, graphCategory, graphShape);
+	console.log(data);
+	var options = OPTIONS[graphShape];
 	var ctx = document.getElementById(graphID).getContext("2d");
-	if (graphType == "pie") {
-        var chart = new Chart(ctx).Doughnut(data,options);
-	} else if (graphType == "bar") {
-        var chart = new Chart(ctx).Bar(data,options);
-	} else if (graphType == "radar") {
-        var chart = new Chart(ctx).Radar(data,options);
-	} else if (graphType == "polar") {
-        var chart = new Chart(ctx).PolarArea(data,options);
+	if (charts.hasOwnProperty(graphID)) {
+		charts[graphID].destroy();
+	}
+	if (graphShape == "pie") {
+        charts[graphID] = new Chart(ctx).Doughnut(data,options);
+	} else if (graphShape == "bar") {
+        charts[graphID] = new Chart(ctx).Bar(data,options);
+	} else if (graphShape == "radar") {
+        charts[graphID] = new Chart(ctx).Radar(data,options);
+	} else if (graphShape == "polar") {
+        charts[graphID] = new Chart(ctx).PolarArea(data,options);
 	}
 }
 
-function formatData(stats, category, graphType) {
-	if (graphType == "pie") {
+function formatData(stats, category, graphShape) {
+	if (graphShape == "pie") {
 	    var formatted = [];
 	    for (var team in stats) {
 	        if (stats.hasOwnProperty(team) && TEAMCOLORS.hasOwnProperty(team)){
@@ -221,11 +227,12 @@ function formatData(stats, category, graphType) {
 	    		formatted[formatted.length - 1]["color"] = TEAMCOLORS[team];
 	        }
 	    }
-	} else if (graphType == "bar") {
-	    var formatted = {};
+	} else if (graphShape == "bar") {
+	    var formatted = {"labels":[], "value":0, "fillColor":"", "datasets":[]};
 	    for (var team in stats) {
 	        if (stats.hasOwnProperty(team) && TEAMCOLORS.hasOwnProperty(team)){
 	    		if (stats[team] == "NFL") {
+	    			console.log(formatted["labels"]);
 	    		   formatted["labels"].push(team);
 	    		} else {
                    formatted["labels"].push(capFirstChar(team));
