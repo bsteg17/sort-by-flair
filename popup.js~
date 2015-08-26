@@ -170,11 +170,11 @@ $(document).ready(function() {
 
       //add average karma/comment to dataset
       for (team in stats) {
-         stats[team]["average"] = stats[team]["teamKarma"]/stats[team]["commentCount"];
+      	stats[team]["average"] = (stats[team]["teamKarma"]/stats[team]["commentCount"]).toFixed(1); //display to 1 decimal place
       }
-      drawGraph(formatData(stats, "commentCount"), "countGraph");
-      drawGraph(formatData(stats, "teamKarma"), "totalScoreGraph");
-      drawGraph(formatData(stats, "average"), "averageScoreGraph");
+      drawGraph(stats, "countGraph", "pie", "commentCount");
+      drawGraph(stats, "totalScoreGraph", "pie", "teamKarma");
+      drawGraph(stats, "averageScoreGraph", "pie", "average");
 	});
 	});
 
@@ -186,59 +186,81 @@ $(document).ready(function() {
 	})
 });
 
-function drawGraph(stats, graphID) {
-	var options = {
-    	//Boolean - Whether we should show a stroke on each segment
-    	segmentShowStroke : true,
-	
-    	//String - The colour of each segment stroke
-    	segmentStrokeColor : "#fff",
-	
-    	//Number - The width of each segment stroke
-    	segmentStrokeWidth : 2,
-	
-    	//Number - The percentage of the chart that we cut out of the middle
-    	percentageInnerCutout : 50, // This is 0 for Pie charts
-	
-    	//Number - Amount of animation steps
-    	animationSteps : 100,
-	
-    	//String - Animation easing effect
-    	animationEasing : "easeOutBounce",
-	
-    	//Boolean - Whether we animate the rotation of the Doughnut
-    	animateRotate : true,
-	
-    	//Boolean - Whether we animate scaling the Doughnut from the centre
-    	animateScale : false,
-	
-    	//String - A legend template
-    	legendTemplate : "<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<segments.length; i++){%><li><span style=\"background-color:<%=segments[i].fillColor%>\"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>"
+$("#count-graph-select").change(function() {
+   graphShape = $(this).val();
+   drawGraph(stats, "countGraph", graphShape, "commentCount");
+});
 
-	}
+var charts = {};
+
+function drawGraph(stats, graphID, graphShape, graphCategory) {
+	data = formatData(stats, graphCategory, graphShape);
+	var options = OPTIONS[graphShape];
 	var ctx = document.getElementById(graphID).getContext("2d");
-	var myDoughnutChart = new Chart(ctx).Doughnut(stats,options);
+	if (charts.hasOwnProperty(graphID)) {
+		charts[graphID].destroy();
+	}
+	if (graphShape == "pie") {
+        charts[graphID] = new Chart(ctx).Doughnut(data,options);
+	} else if (graphShape == "bar") {
+        charts[graphID] = new Chart(ctx).Bar(data,options);
+	} else if (graphShape == "radar") {
+        charts[graphID] = new Chart(ctx).Radar(data,options);
+	} else if (graphShape == "polar") {
+        charts[graphID] = new Chart(ctx).PolarArea(data,options);
+	}
 }
 
-function formatData(stats, category) {
-	var formatted = [];
-	for (var team in stats) {
-	    if (stats.hasOwnProperty(team)){
-	        console.log(stats[team]);
-		     formatted.push({});
+function formatData(stats, category, graphShape) {
 
-			  if (stats[team] != "NFL") {
-			     formatted[formatted.length - 1]["label"] = capitalizeFirstChar(team);
-			  } else {
-              formatted[formatted.length - 1]["label"] = team;
-		     }
-			  formatted[formatted.length - 1]["value"] = stats[team][category];
-			  formatted[formatted.length - 1]["color"] = TEAMCOLORS[team];
+   //Eliminate unwanted flair from stats
+   for (var team in stats) {
+      if (!TEAMCOLORS.hasOwnProperty(team)) {
+         delete stats[team];
+      }
+   }
+
+
+	if (graphShape == "pie") {
+	    var formatted = [];
+	    for (var team in stats) {
+	        if (stats.hasOwnProperty(team) && TEAMCOLORS.hasOwnProperty(team)){
+	    	    formatted.push({});
+	    		if (stats[team] != "NFL") {
+	    		   formatted[formatted.length - 1]["label"] = capFirstChar(team);
+	    		} else {
+                   formatted[formatted.length - 1]["label"] = team;
+	    	    }
+	    		formatted[formatted.length - 1]["value"] = stats[team][category];
+	    		formatted[formatted.length - 1]["color"] = TEAMCOLORS[team];
+	        }
 	    }
+	} else if (graphShape == "bar") {
+	    var formatted = {"labels":[], "datasets":[]};
+       index = 0;
+	    for (var team in stats) {
+	    	     if (stats[team] == "NFL") {
+	    		     formatted["labels"].push(team);
+	    		  } else {
+                 formatted["labels"].push(capFirstChar(team));
+	    	     }
+	    	     dataset = {data: []};
+              //initialize data array to 32 indices
+              for (var i = 0; i < Object.keys(stats).length; i++) {
+	    	        dataset["data"].push(undefined);
+              }
+              //Store value into single index, leaving all other 
+              //indices (other bar heights) at zero.
+              dataset["data"][index] = stats[team][category];
+	    		  dataset["fillColor"] = TEAMCOLORS[team];
+	    		  formatted["datasets"].push(dataset);
+              index += 1;
+	       }
+       console.log(formatted);
 	}
 	return formatted;
 }
 
-function capitalizeFirstChar(str) {
+function capFirstChar(str) {
    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }

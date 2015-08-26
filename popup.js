@@ -195,7 +195,6 @@ var charts = {};
 
 function drawGraph(stats, graphID, graphShape, graphCategory) {
 	data = formatData(stats, graphCategory, graphShape);
-	console.log(data);
 	var options = OPTIONS[graphShape];
 	var ctx = document.getElementById(graphID).getContext("2d");
 	if (charts.hasOwnProperty(graphID)) {
@@ -213,6 +212,15 @@ function drawGraph(stats, graphID, graphShape, graphCategory) {
 }
 
 function formatData(stats, category, graphShape) {
+
+   //Eliminate unwanted flair from stats
+   for (var team in stats) {
+      if (!TEAMCOLORS.hasOwnProperty(team)) {
+         delete stats[team];
+      }
+   }
+
+
 	if (graphShape == "pie") {
 	    var formatted = [];
 	    for (var team in stats) {
@@ -228,21 +236,27 @@ function formatData(stats, category, graphShape) {
 	        }
 	    }
 	} else if (graphShape == "bar") {
-	    var formatted = {"labels":[], "value":0, "fillColor":"", "datasets":[]};
+	    var formatted = {"labels":[], "datasets":[]};
+       index = 0;
 	    for (var team in stats) {
-	        if (stats.hasOwnProperty(team) && TEAMCOLORS.hasOwnProperty(team)){
-	    		if (stats[team] == "NFL") {
-	    			console.log(formatted["labels"]);
-	    		   formatted["labels"].push(team);
-	    		} else {
-                   formatted["labels"].push(capFirstChar(team));
-	    	    }
-	    	    dataset = {};
-	    	    dataset["value"] = stats[team][category];
-	    		dataset["fillColor"] = TEAMCOLORS[team];
-	    		formatted["datasets"].push(dataset);
-	        }
-	    }
+	    	     if (stats[team] == "NFL") {
+	    		     formatted["labels"].push(team);
+	    		  } else {
+                 formatted["labels"].push(capFirstChar(team));
+	    	     }
+	    	     dataset = {data: []};
+              //initialize data array to 32 indices
+              for (var i = 0; i < Object.keys(stats).length; i++) {
+	    	        dataset["data"].push(0);
+              }
+              //Store value into single index, leaving all other 
+              //indices (other bar heights) at zero.
+              dataset["data"][index] = stats[team][category];
+	    		  dataset["fillColor"] = TEAMCOLORS[team];
+	    		  formatted["datasets"].push(dataset);
+              index += 1;
+	       }
+       console.log(formatted);
 	}
 	return formatted;
 }

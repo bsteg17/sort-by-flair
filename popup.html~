@@ -22,17 +22,24 @@
     <table>
 	<tbody>
 	<tr>
-    <td><tr><canvas id="countGraph" width="200" height="200"></canvas></tr><tr><p align="center">Total Number of Comments By Team</p></tr></td>
-    <td><canvas id="totalScoreGraph" width="200" height="200"></canvas><p align="center">Total Karma By Team</p></td>
+    <canvas id="countGraph" width="400" height="200"></canvas>
+    <p align="center">Total Number of Comments By Team</p>
+    <select id="count-graph-select">
+        <option value="pie">Pie</option>
+        <option value="bar">Bar</option>
+        <option value="radar">Radar</option>
+        <option value="polar">Polar Area</option>
+    </select>
    </tr>
    <tr>
     <td><canvas id="averageScoreGraph" width="200" height="200"></canvas><p align="center">Average Karma By Team</p></td>
-    <td></td>
+    <td><canvas id="totalScoreGraph" width="200" height="200"></canvas><p align="center">Total Karma By Team</p></td>
    </tr>
     <script src="jquery.js"></script>
-    <script src="Chart.min.js"></script>
+    <script src="Chart.js"></script>
 
     <script src="colors.js"></script>
+    <script src="options.js"></script>
 
     <script src="popup.js"></script>
   </body>
